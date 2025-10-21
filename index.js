@@ -1,30 +1,25 @@
-// index.js
+// index.js - Worker para histórico do Aviator no Placard (Spribe)
 export default {
   async fetch(request, env) {
-    // Extrai o parâmetro "limit" da URL (ex: ?limit=20)
     const url = new URL(request.url);
     const limit = url.searchParams.get('limit') || '10';
 
     // Validação simples
-    if (limit < 1 || limit > 100) {
-      return new Response(JSON.stringify({ error: 'Limit must be between 1 and 100' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
 
-    // Endpoint da Spribe para histórico
-    const apiUrl = `https://aviator-next.spribegaming.com/api/rounds/history?limit=${encodeURIComponent(limit)}`;
+    const apiUrl = `https://aviator-next.spribegaming.com/api/rounds/history?limit=${limitNum}`;
 
-    // Headers essenciais — incluindo seu token
     const headers = {
       'Accept': 'application/json',
-      'Accept-Language': 'pt',
+      'Accept-Language': 'pt-PT,pt;q=0.9,en-US;q=0.8,en;q=0.7',
       'Referer': 'https://aviator-next.spribegaming.com/',
       'Origin': 'https://aviator-next.spribegaming.com',
-      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36',
-      // ⚠️ Aqui vai seu token real (você pode atualizar depois)
-      'Authorization': 'Bearer f827ee98-1da9-48dc-a77d-5a8f0230a808',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+      'Authorization': 'Bearer d7b76299-26ec-4087-9cb0-3ad9e0e600af', // ✅ TOKEN NOVO!
+      'Content-Type': 'application/json',
+      'Sec-Fetch-Dest': 'empty',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'same-origin',
     };
 
     try {
@@ -33,24 +28,41 @@ export default {
         headers,
       });
 
+      // Verifica se a resposta é HTML (erro comum)
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('text/html')) {
+        const preview = await response.text();
+        return new Response(JSON.stringify({
+          error: 'Received HTML (likely login page or error). Token may be invalid or headers missing.',
+          preview: preview.substring(0, 300)
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
       if (!response.ok) {
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch from Spribe API', status: response.status }),
-          { status: response.status, headers: { 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({
+          error: 'API request failed',
+          status: response.status,
+          statusText: response.statusText
+        }), {
+          status: response.status,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
 
       const data = await response.json();
 
-      // Retorna só os multiplicadores (opcional: formatação limpa)
+      // Formata a resposta
       const cleanData = {
         success: true,
         count: data.results?.length || 0,
-        rounds: data.results?.map(r => ({
-          id: r.roundId,
-          multiplier: r.cashoutMultiplier || r.multiplier,
+        rounds: (data.results || []).map(r => ({
+          id: r.roundId || r.id,
+          multiplier: r.cashoutMultiplier || r.multiplier || null,
           timestamp: r.createdAt || null
-        })) || []
+        }))
       };
 
       return new Response(JSON.stringify(cleanData, null, 2), {
@@ -58,7 +70,10 @@ export default {
       });
 
     } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), {
+      return new Response(JSON.stringify({
+        error: 'Exception in Worker',
+        message: err.message
+      }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
