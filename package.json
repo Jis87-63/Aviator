@@ -1,0 +1,12 @@
+{
+  "name": "aviator-history-worker",
+  "version": "1.0.0",
+  "description": "Fetch Aviator round history from Placard (Spribe)",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "author": "KleinMoretti",
+  "license": "MIT"
+}
