@@ -1,5 +1,5 @@
 # wrangler.toml
-name = "aviator-history-placard"
+name = "aviatorpro"
 main = "index.js"
 compatibility_date = "2025-10-21"
 
