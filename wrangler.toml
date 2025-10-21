@@ -1,0 +1,9 @@
+# wrangler.toml
+name = "aviator-history-placard"
+main = "index.js"
+compatibility_date = "2025-10-21"
+
+# Opcional: se quiser usar KV depois para salvar tokens
+# kv_namespaces = [
+#   { binding = "TOKENS", id = "seu-id-kv-aqui" }
+# ]
